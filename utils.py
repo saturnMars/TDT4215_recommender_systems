@@ -1,37 +1,29 @@
-from pprint import PrettyPrinter
-import json
-import os
+from pandas import read_json, concat
+from os import listdir, path
 
 
-def import_dataset(folder_path, full_output=False):
-    files = os.listdir(folder_path)
+def import_dataset(folder_path):
+    """
+    Read and save as Pandas DF the events includes in all the JSON files
+    :param folder_path: system path of the folder to read
+    :return: Pandas DataFrame with all the events
+    """
+    files = listdir(folder_path)
 
-    events_imported = 0
-    files_imported = 0
+    daily_events = list()
 
     # Scan each file in the directory
     for file_name in files:
-        file_path = os.path.join(folder_path, file_name)
+        file_path = path.join(folder_path, file_name)
 
-        num_events = 0
-
+        # Read the file
         with open(file_path) as file:
+            events = read_json(file, lines=True)
+            daily_events.append(events)
 
-            # Retrieve all events within the file
-            for line in file:
-                event = json.loads(line.strip())
+            print("LOADED: {0} events for file {1}".format(len(events), file_name))
 
-                # TODO Save each object (event: JSON file) into a data structure (e.g. pandas dataframe)
-
-                num_events += 1
-                if full_output:
-                    PrettyPrinter(indent=4).pprint(event)
-
-            files_imported += 1
-            events_imported += num_events
-            print("LOADED: {0} events for file {1}".format(num_events, file_name))
-
-    print("Files imported: ", files_imported)
-    print("Events imported: ", events_imported)
-
-    return None
+    # Concatenate all the daily events
+    df_events = concat(daily_events, ignore_index=True)
+    print("TOTAL EVENTS: {0}\n".format(len(df_events)))
+    return df_events
