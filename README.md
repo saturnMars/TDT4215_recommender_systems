@@ -6,8 +6,8 @@
 - 9 attributes (userID, title) 
 
 **Examples**:
-a. CF --> Explicit Matrix Factorization (MF)
-b. Content-based --> TF-IDF + Cosine similarity 
+- CF --> Explicit Matrix Factorization (MF)
+- Content-based --> TF-IDF + Cosine similarity 
 
 **EVALUATION**:
 1. Recall (hit rate) --> positive instances that are correctly predicted 
