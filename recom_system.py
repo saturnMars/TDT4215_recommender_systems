@@ -105,8 +105,20 @@ def collaborative_filtering(train_data, test_data, find_best_model=False):
     predictions = EF_model.predict_all()
 
     # Get evaluation
-    test_mse = round(EF_model.evaluate(test_data), 4)
+    test_mse = EF_model.evaluate(test_data)
     return predictions, test_mse
+
+
+def MF_make_recommendation( ratings, prediction_matrix, user, num_recommendation=10):
+    # Retrieve user predictions
+    user_ratings = ratings[user]
+    items_unknown = np.argwhere(user_ratings == 0)
+    user_prediction = prediction_matrix[user, items_unknown]
+
+    # Make recommendation: sort and keep top k items
+    sorted_items = np.argsort(user_prediction, axis=0)[::-1]  # Sort in descending order
+    recommendations = sorted_items[:num_recommendation]
+    return recommendations
 
 
 if __name__ == "__main__":
@@ -121,19 +133,14 @@ if __name__ == "__main__":
     train_ratings, test_ratings = train_test_split(ratings, test_size=0.2, random_state=99)
 
     # METHOD 1: Model-based collaborative filtering (Latent factors: Explicit Matrix Factorization)
-    print("\nRecommendation based on the CF method (Matrix Factorization) ...\n...Training")
+    # Train the model
+    print("\nRecommendation based on the CF method (Matrix Factorization) ...\nTraining...")
     train_predictions, test_mse = collaborative_filtering(train_ratings, test_ratings)
-    print(f"\nPREDICTIONS {train_predictions.shape} with MSE (test data): {test_mse}")
+    print(f"\nPREDICTIONS {train_predictions.shape} generated with MSE (test data): {test_mse}")
 
-    # Retrieve user predictions
-    user = 200
-    user_ratings = train_ratings[user]
-    items_unknown = np.argwhere(user_ratings == 0)
-    user_prediction = train_predictions[user, items_unknown]
-
-    # Make recommendation: sort and keep top k items
-    num_recom = 10
-    sorted_items = np.argsort(user_prediction, axis=0)[::-1]  # Sort in descending order
-    recommendations = sorted_items[:num_recom]
-    print(f"The {num_recom} items recommended for the user {user}\n")
+    # Make recommendation: higher predicted values
+    index_user = 200
+    k = 10
+    recommendations = MF_make_recommendation(train_ratings, train_predictions, num_recommendation=k)
+    print(f"The {k} items recommended for the user {index_user}\n")
     print("ITEMS: ", *recommendations)
