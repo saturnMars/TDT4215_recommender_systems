@@ -66,15 +66,13 @@ def Dataframe2UserItemMatrix(df):
         ratings[row[1] - 1, row[2] - 1] = 1.0
 
     # Print ratings matrix
-    print("USER-ITEM MATRIX: \n", ratings)
+    print(f"\nThe User-Item Matrix has been generated ({ratings.shape[0]} users and {ratings.shape[1]} items)")
 
     # Print ratings available (1s)
     unique, counter = np.unique(ratings, return_counts=True)
     ratings_available = dict(zip(unique, counter))
     sparsity = 100 * round((ratings_available[1] / ratings_available[0]), 4)
-    print(f"Number of ratings available (1s): {ratings_available[1]} (~ {sparsity} %, "
-          f"total = {sum(ratings_available.values())}]")
+    print(f"Number of ratings available (1s): {ratings_available[1]} "
+          f"(~ {sparsity}%, total = {sum(ratings_available.values())}]")
 
     return ratings
-
-

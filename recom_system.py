@@ -21,7 +21,7 @@ def MF_grid_search(train_data, test_data):
     :return: The best model, n_factors, reg, n_iter
     """
     latent_factors = [5, 10, 20, 40, 80]
-    regularization = [1e-3, 1e-2, 1e-1, 1., 10]
+    regularization = [1e-4, 1e-3, 1e-2, 1e-1, 1.]
     learning_rates = [1e-3, 1e-2, 1e-1]
     iter_array = [1, 2, 5, 10, 25, 50, 100]  # 200
 
@@ -68,27 +68,45 @@ def MF_grid_search(train_data, test_data):
     return best_params["model"], (best_params['n_factors'], best_params['reg'], best_params['n_iter'])
 
 
-def collaborative_filtering(train_data, test_data, find_best_model=True):
+def collaborative_filtering(train_data, test_data, find_best_model=False):
+    """
+    Implement the algorithm of Explicit Matrix factorization using an approach of collaborative filtering
+    :param train_data: data used to train the model
+    :param test_data: data used to evaluate the model
+    :param find_best_model: boolean value to decide whether trigger the grid search for searching
+    the best hyperparameters
+    :return: Prediction on train data, MSE on test data
+    """
     if find_best_model:
         EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data, test_data)
         print(f"Best regularization term: {reg_term}")
         print(f"Best latent factors: {n_factors}")
         print(f"Best number of iterations: {n_iter}")
-    else:
-        reg = 0.0
-        EF_model = ExplicitMatrixFactorization(train_data, n_factors=40,
-                                               item_reg=reg, user_reg=reg,
-                                               item_bias_reg=reg, user_bias_reg=reg)
 
-    iter_array = [1, 2, 5, 10, 25, 50, 100]
+        # Evaluate and predict
+        #iter_array = [1, 2, 5, 10, 25, 50, 100]
+        #predictions, test_mse = EF_model.calculate_learning_curve(iter_array, test_data, learning_rate)
 
-    # Plot
-    EF_model.plot_learning_curve(iter_array, EF_model)
+        # Plot
+        #EF_model.plot_learning_curve(iter_array, EF_model)
 
-    prediction = EF_model.predict_all()
-    print(prediction)
+    else:  # Initialize the model with the best parameters found
+        num_factors = 20 #80
+        num_iter = 10 #100
+        reg_term = 0.01
+        learning_rate = 0.1
+        EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="sgd",
+                                               item_reg=reg_term, user_reg=reg_term,
+                                               item_bias_reg=reg_term, user_bias_reg=reg_term)
+    # Train the model
+    EF_model.train(num_iter, learning_rate)
 
-    return EF_model
+    # Prediction
+    predictions = EF_model.predict_all()
+
+    # Get evaluation
+    test_mse = round(EF_model.evaluate(test_data), 4)
+    return predictions, test_mse
 
 
 if __name__ == "__main__":
@@ -102,22 +120,20 @@ if __name__ == "__main__":
     # Split the dataset into training and test sets
     train_ratings, test_ratings = train_test_split(ratings, test_size=0.2, random_state=99)
 
-    # METHOD 1: Model-based collaborative filtering
-    # CF Latent factors: Explicit Matrix Factorization
-    print("\n1) Recommendation based on the CF method (Matrix Factorization) ...")
-    model_cf = collaborative_filtering(train_ratings, test_ratings)
-    print("\nPREDICTIONS \n", model_cf.predictions)
+    # METHOD 1: Model-based collaborative filtering (Latent factors: Explicit Matrix Factorization)
+    print("\nRecommendation based on the CF method (Matrix Factorization) ...\n...Training")
+    train_predictions, test_mse = collaborative_filtering(train_ratings, test_ratings)
+    print(f"\nPREDICTIONS {train_predictions.shape} with MSE (test data): {test_mse}")
 
+    # Retrieve user predictions
+    user = 200
+    user_ratings = train_ratings[user]
+    items_unknown = np.argwhere(user_ratings == 0)
+    user_prediction = train_predictions[user, items_unknown]
 
-
-
-
-    # TODO tackle the overfittig phenomenon
-    # ISSUE: Huge difference between training and test data)
-    # HOW: Try to follow this guide (from "Evaluation and Tuning")
-    # - https://www.ethanrosenthal.com/2016/01/09/explicit-matrix-factorization-sgd-als/
-    # - NB: sklearn.model_selection.GridSearchCV could be useful
-    # - Could be useful SGD: https://scikit-learn.org/stable/modules/sgd.html
-
-    # ALTERNATIVE: Implement Matrix factorization through a specific library
-    # https://pypi.org/project/matrix-factorization/
+    # Make recommendation: sort and keep top k items
+    num_recom = 10
+    sorted_items = np.argsort(user_prediction, axis=0)[::-1]  # Sort in descending order
+    recommendations = sorted_items[:num_recom]
+    print(f"The {num_recom} items recommended for the user {user}\n")
+    print("ITEMS: ", *recommendations)
