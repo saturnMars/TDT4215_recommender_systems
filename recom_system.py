@@ -7,17 +7,14 @@ from ExplicitMF import ExplicitMF as ExplicitMatrixFactorization
 # b) sklearn.metrics.pairwise (e.g. cosine_similairty)
 
 
-def collaborative_filtering(ratings):
-    # Split the dataset into training and test sets
-    train_events, test_events = train_test_split(ratings, test_size=0.2, random_state=99)
-
+def collaborative_filtering(train_data, test_data):
     # Run the Algorithm of Explicit Matrix Factorization
-    model = ExplicitMatrixFactorization(train_events, n_factors=40, item_reg=1.0, user_reg=1.0,
+    model = ExplicitMatrixFactorization(train_data, n_factors=40, item_reg=1.0, user_reg=1.0,
                                         verbose=True)
 
     # Test it on unseen data (train set)
     iter_array = [1, 2, 5, 10, 25, 50, 100]
-    model.calculate_learning_curve(iter_array, test_events)
+    model.calculate_learning_curve(iter_array, test_data)
 
     # Plot
     model.plot_learning_curve(iter_array)
@@ -32,10 +29,14 @@ if __name__ == "__main__":
     # Create the User-Item matrix
     ratings = utils.Dataframe2UserItemMatrix(df)
 
+    # Split the dataset into training and test sets
+    train_ratings, test_ratings = train_test_split(ratings, test_size=0.2, random_state=99)
+
     # METHOD 1: Model-based collaborative filtering
     # Latent factors: Explicit Matrix Factorization
     print("\n1) Recommendation based on the CF method (Matrix Factorization) ...")
-    model_cf = collaborative_filtering(ratings)
+    model_cf = collaborative_filtering(train_ratings, test_ratings)
+
     print("\nPREDICTIONS \n", model_cf.predictions)
 
     # TODO tackle the overfittig phenomenon
