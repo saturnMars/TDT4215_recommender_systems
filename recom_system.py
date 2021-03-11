@@ -72,16 +72,29 @@ def collaborative_filtering(train_data, test_data, find_best_model=False):
     """
     if find_best_model:
         EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data, test_data)
+
+        # EF_model.plot_learning_curve(iter_array, EF_model)
+
         print(f"Best regularization term: {reg_term}")
         print(f"Best latent factors: {n_factors}")
         print(f"Best number of iterations: {n_iter}")
 
-        #EF_model.plot_learning_curve(iter_array, EF_model)
+        # New optimal hyperparameters ('n_factors': 5, 'reg': 1.0, 'n_iter': 100)
+        # 'train_mse': 4.714649845685047e-26,
+        # 'test_mse': 2.957891863472903e-26
 
-    else:  # Initialize the model with the best parameters found with grid search
-        num_factors = 20 #80
-        num_iter = 10 #100
-        reg_term = 0.01
+        # n_iter 1: 3min, mse = e-06
+        # n_iter 5: 5min, mse = e-07
+        # n_iter 10: 7min, mse = e-09
+        # n_iter 25: 15min, mse = e-11
+        # n_iter 50: 25min, mse = e-17
+        # n_iter 100: 1.30h, mse = e-26
+
+    # Initialize the model with the best parameters found with grid search
+    else:
+        num_factors = 5
+        num_iter = 5
+        reg_term = 1
         learning_rate = 0.1
         EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="sgd",
                                                item_reg=reg_term, user_reg=reg_term,
