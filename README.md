@@ -1,31 +1,44 @@
 # TDT4215_recommender_systems
-**TASK**: Develop a news recommender system
 
-**DATA**: user data from the local digital newspaper (January - March)
-- 1,000 most active users 
-- 9 attributes (userID, title) 
+## TASK: Develop a news recommender system
 
-**Examples**:
+## DATA: user data from the local digital newspaper (January - March)
+
+- 1,000 most active users
+- 9 attributes (userID, title)
+
+## Examples
+
 - CF --> Explicit Matrix Factorization (MF)
-- Content-based --> TF-IDF + Cosine similarity 
+- Content-based --> TF-IDF + Cosine similarity
 
-**EVALUATION**:
-1. Recall (hit rate) --> positive instances that are correctly predicted 
+## EVALUATION
+
+1. Recall (hit rate) --> positive instances that are correctly predicted
 2. CTR (Click- through rate) --> recommendations clicked over total rec
-3. ARHR (average reciprocal hit rate) 
-4. MSE 
+3. ARHR (average reciprocal hit rate)
+4. MSE
 
-**REPORT** (max 15 pages.)
-a. Motivation
-b. overview of existing news recommender algorithms and approaches
-c. evaluation results
-d. conclusion 
+## REPORT (max 15 pages)
 
-**EVALUATION**: report + presentation + performance evaluation
+1. Motivation
+2. overview of existing news recommender algorithms and approaches
+3. evaluation results
+4. conclusion
 
-**STEPS**
-1.train test split --> scikit-learn
+## EVALUATION: report + presentation + performance evaluation
+
+## STEPS
+
+1. train test split --> scikit-learn
 2. Implement a Collaborative filtering RS
 3. Implement a Content-based RS
 4. Merge them and build a Hybrid RS
 5. Evaluation Recall, ARHR)
+
+## TODO now
+
+1. Merge both data sets
+2. Create a long list of all events, sorted by timestamp (keep this to perform analyses on the complete data set, such as TD-IDF)
+3. Split 80/20 train/test
+4. Extract individual users from both train and test into one file each
