@@ -1,8 +1,6 @@
 import utils
-from sklearn.model_selection import train_test_split, GridSearchCV
 from ExplicitMF import ExplicitMF as ExplicitMatrixFactorization
 import numpy as np
-
 
 def MF_grid_search(train_data, test_data):
     """
@@ -135,20 +133,25 @@ def MF_make_recommendation(ratings, prediction_matrix, user_id, k):
 if __name__ == "__main__":
     # Import dataset
     df = utils.import_dataset("./data")
-    print("EXAMPLE of an event:\n", df.loc[1000, :])
+
+    # Split the dataset into training and test sets, according to the "time" attribute
+    train_df, test_df, common_users = utils.split_train_test(df, num_test_days=30)
 
     # Create the User-Item matrix
-    ratings = utils.Dataframe2UserItemMatrix(df)
+    train_ratings = utils.Dataframe2UserItemMatrix(train_df)
+    test_ratings = utils.Dataframe2UserItemMatrix(test_df)
 
-    # Split the dataset into training and test sets
-    train_ratings, test_ratings = train_test_split(ratings, test_size=0.2, random_state=99)
-
-    # METHOD 1:
-    # Model-based collaborative filtering (Latent factors: Explicit Matrix Factorization)
-    # a) Train the model
+    # METHOD 1: Item-based Collaborative Filtering
+    # Latent factors: Explicit Matrix Factorization
     print("\nRecommendation based on the CF method (Matrix Factorization) ...\nTraining...")
     train_predictions, test_mse = collaborative_filtering(train_ratings, test_ratings)
     print(f"\nPREDICTIONS {train_predictions.shape} generated with MSE (test data): {test_mse}")
+
+    # TODO for all common users:
+    # a. Make recommendations
+    # b. Check if recommendations are equal to the target in the test sets
+    # c) Compute the recall metric
+    # TODO compute the overall recall
 
     # b) Make recommendation: higher predicted values
     index_user = 200

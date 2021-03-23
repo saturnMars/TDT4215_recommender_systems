@@ -1,7 +1,6 @@
-from pandas import read_json, concat, merge, DataFrame
+from pandas import read_json, read_csv, concat, merge, DataFrame, Timestamp, date_range, to_datetime
 from os import listdir, path
 import numpy as np
-
 
 
 def import_dataset(folder_path):
@@ -10,6 +9,14 @@ def import_dataset(folder_path):
     :param folder_path: system path of the folder to read
     :return: Pandas DataFrame with all the events
     """
+    csv_file_path = path.join(folder_path, "Events.csv")
+
+    # if path.isfile(csv_file_path):
+    #     df = read_csv(csv_file_path)
+    #     df["time"] = to_datetime(df["time"])
+    #     print(f"Dataset loaded with {len(df)} events")
+    #     return df
+
     files = listdir(folder_path)
 
     # Scan each file in the directory
@@ -20,15 +27,35 @@ def import_dataset(folder_path):
         # Read the file
         with open(file_path) as file:
             events = read_json(file, lines=True)
+
+            # Convert the Unix timestamp to ordinary dates
+            events["time"] = events["time"].apply(
+                lambda date: Timestamp(date, unit="s", tz="Europe/Oslo")
+            )
             daily_events.append(events)
 
             print("LOADED: {0} events for file {1}".format(len(events), file_name))
 
     # Concatenate all the daily events
     df_events = concat(daily_events, ignore_index=True)
+    # df_events.to_csv(csv_file_path, index=False)
 
     print("TOTAL EVENTS: {0}\n".format(len(df_events)))
     return df_events
+
+
+def split_train_test(df, num_test_days):
+    last_day = df['time'].iloc[-1].date()
+    test_window = date_range(end=last_day, periods=num_test_days, freq="D").date
+
+    # Split into test and train dataset
+    test_mask = df["time"].dt.date.isin(test_window)
+    train_df = df[-test_mask]
+    test_df = df[test_mask]
+
+    # Find common users
+    common_users = set(test_df["userId"]).intersection(train_df["userId"])
+    return train_df, test_df, common_users
 
 
 def Dataframe2UserItemMatrix(df):
