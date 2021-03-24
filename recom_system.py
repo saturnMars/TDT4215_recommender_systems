@@ -155,6 +155,6 @@ if __name__ == "__main__":
     print("\nRecommendation based on the CF method (Matrix Factorization)")
     recommendations, average_recall = collaborative_filtering(train_ratings, test_ratings, common_users_ids)
     print(f"    Recommendations generated: {len(recommendations) * len(recommendations[0])} "
-          f"({len(recommendations[0])} recommendations for each users)\n"
+          f"({len(recommendations[0])} recommendations for each user)\n"
           f"    Average recall score: {round(average_recall, 4)}")
 
