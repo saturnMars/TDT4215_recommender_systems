@@ -57,7 +57,7 @@ def MF_grid_search(train_data, test_data):
     return best_params["model"], (best_params['n_factors'], best_params['reg'], best_params['n_iter'])
 
 
-def collaborative_filtering(train_data, test_data, find_best_model=False):
+def collaborative_filtering(train_data, test_data, common_users_ids, find_best_model=False):
     """
     Implement the algorithm of Explicit Matrix factorization using an approach of collaborative filtering
     :param train_data: data used to train the model
@@ -69,7 +69,7 @@ def collaborative_filtering(train_data, test_data, find_best_model=False):
     :return: Prediction on train data, MSE on test data
     """
     if find_best_model:
-        EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data, test_data)
+        EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data)
 
         # EF_model.plot_learning_curve(iter_array, EF_model)
 
@@ -94,18 +94,27 @@ def collaborative_filtering(train_data, test_data, find_best_model=False):
         num_iter = 5
         reg_term = 1
         learning_rate = 0.1
-        EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="sgd",
+        EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="als", #als - sgd
                                                item_reg=reg_term, user_reg=reg_term,
                                                item_bias_reg=reg_term, user_bias_reg=reg_term)
     # Train the model
+    print("--> Training ...")
     EF_model.train(num_iter, learning_rate)
 
-    # Prediction
-    predictions = EF_model.predict_all()
+    # Generate recommendations and evaluate recall scores
+    raw_predictions = EF_model.predict_all()
 
-    # Get evaluation
-    mse = EF_model.evaluate(test_data)
-    return predictions, mse
+    recalls = []
+    users_recommendations = []
+    print(f"--> Making recommendations for {len(common_users_ids)} users and evaluate predictions (recall)...")
+    for user in common_users_ids:
+        recommendations, recall = EF_model.make_recommendations(raw_predictions, user, num_recommendation=20)
+        users_recommendations.append(recommendations)
+        recalls.append(recall)
+        #print(f"{len(recommendations)} recommendations generated for USER:{user} with RECALL: {round(recall, 4)}")
+
+    average_recall_score = np.array(recalls).mean()
+    return users_recommendations, average_recall_score
 
 
 def MF_make_recommendation(ratings, prediction_matrix, user_id, k):
@@ -138,23 +147,14 @@ if __name__ == "__main__":
     train_df, test_df, common_users = utils.split_train_test(df, num_test_days=30)
 
     # Create the User-Item matrix
-    train_ratings = utils.Dataframe2UserItemMatrix(train_df)
-    test_ratings = utils.Dataframe2UserItemMatrix(test_df)
+    train_ratings, common_users_ids = utils.Dataframe2UserItemMatrix(train_df, common_users)
+    test_ratings, common_users_ids = utils.Dataframe2UserItemMatrix(test_df, common_users)
 
     # METHOD 1: Item-based Collaborative Filtering
     # Latent factors: Explicit Matrix Factorization
-    print("\nRecommendation based on the CF method (Matrix Factorization) ...\nTraining...")
-    train_predictions, test_mse = collaborative_filtering(train_ratings, test_ratings)
-    print(f"\nPREDICTIONS {train_predictions.shape} generated with MSE (test data): {test_mse}")
+    print("\nRecommendation based on the CF method (Matrix Factorization)")
+    recommendations, average_recall = collaborative_filtering(train_ratings, test_ratings, common_users_ids)
+    print(f"    Recommendations generated: {len(recommendations) * len(recommendations[0])} "
+          f"({len(recommendations[0])} recommendations for each users)\n"
+          f"    Average recall score: {round(average_recall, 4)}")
 
-    # TODO for all common users:
-    # a. Make recommendations
-    # b. Check if recommendations are equal to the target in the test sets
-    # c) Compute the recall metric
-    # TODO compute the overall recall
-
-    # b) Make recommendation: higher predicted values
-    index_user = 200
-    num_recommendation = 10
-    recommendations = MF_make_recommendation(train_ratings, train_predictions, index_user, num_recommendation)
-    print(f"The {num_recommendation} items recommended for the user {index_user}\n", *recommendations)

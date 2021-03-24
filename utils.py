@@ -40,7 +40,7 @@ def import_dataset(folder_path):
     df_events = concat(daily_events, ignore_index=True)
     # df_events.to_csv(csv_file_path, index=False)
 
-    print("TOTAL EVENTS: {0}\n".format(len(df_events)))
+    print(f"TOTAL EVENTS: {len(df_events)}")
     return df_events
 
 
@@ -58,12 +58,14 @@ def split_train_test(df, num_test_days):
     return train_df, test_df, common_users
 
 
-def Dataframe2UserItemMatrix(df):
+def Dataframe2UserItemMatrix(df, common_users):
     """
     @author: zhanglemei and peng -  Sat Jan  5 13:48:20 2019
 
     Convert dataframe to user-item-interaction matrix, which is used for
     Matrix Factorization based recommendation.
+    ROWS: users
+    COLUMNS: items
     In rating matrix, clicked events are refered as 1 and others are refered as 0.
 
     :param df: Pandas Dataframe
@@ -89,8 +91,14 @@ def Dataframe2UserItemMatrix(df):
     df = merge(df, new_df, on='documentId', how='outer')
     df_ext = df[['uid', 'tid']]
 
+    # Find indexes of common users
+    common_users_df = df[df["userId"].isin(common_users)]["uid"].unique()
+    common_idx = set()
+
     for row in df_ext.itertuples():
         ratings[row[1] - 1, row[2] - 1] = 1.0
+        if row[1] in common_users_df:
+            common_idx.add(row[1] - 1)
 
     # Print ratings matrix
     print(f"\nThe User-Item Matrix has been generated ({ratings.shape[0]} users and {ratings.shape[1]} items)")
@@ -98,8 +106,8 @@ def Dataframe2UserItemMatrix(df):
     # Print ratings available (1s)
     unique, counter = np.unique(ratings, return_counts=True)
     ratings_available = dict(zip(unique, counter))
-    sparsity = 100 * round((ratings_available[1] / ratings_available[0]), 4)
+    sparsity = round(100 * (ratings_available[1] / ratings_available[0]), 2)
     print(f"Number of ratings available (1s): {ratings_available[1]} "
-          f"(~ {sparsity}%, total = {sum(ratings_available.values())}]")
+          f"(~ {sparsity} %, total = {sum(ratings_available.values())}]")
 
-    return ratings
+    return ratings, common_idx

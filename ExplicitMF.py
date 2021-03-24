@@ -7,7 +7,7 @@ Created on Sun Jan  6 14:42:44 2019
 """
 
 from numpy.linalg import solve
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, recall_score
 import numpy as np
 import pathlib
 import matplotlib.pyplot as plt
@@ -17,6 +17,7 @@ class ExplicitMF:
     def __init__(self,
                  ratings,
                  n_factors=40,
+                 threshold_recommendation=0.1,
                  learning_alg='sgd',
                  item_reg=0.0,
                  user_reg=0.0,
@@ -38,6 +39,7 @@ class ExplicitMF:
         """
         self.ratings = ratings
         self.n_users, self.n_items = ratings.shape
+        self.threshold_recommendation = threshold_recommendation
         self.n_factors = n_factors
         self.item_reg = item_reg
         self.user_reg = user_reg
@@ -108,9 +110,9 @@ class ExplicitMF:
             if ctr % 10 == 0 and self._v:
                 print(f'\tcurrent iteration: {ctr}')
             if self.learning == 'als':
-                self.user_vecs = self.als_step(self.user_vecs, self.item_vecs, self.ratings, self.user_fact_reg,
+                self.user_vecs = self.als_step(self.user_vecs, self.item_vecs, self.ratings, self.user_reg,
                                                type='user')
-                self.item_vecs = self.als_step(self.item_vecs, self.user_vecs, self.ratings, self.item_fact_reg,
+                self.item_vecs = self.als_step(self.item_vecs, self.user_vecs, self.ratings, self.item_reg,
                                                type='item')
             elif self.learning == 'sgd':
                 self.training_indices = np.arange(self.n_samples)
@@ -142,9 +144,7 @@ class ExplicitMF:
         if self.learning == 'als':
             return self.user_vecs[u, :].dot(self.item_vecs[i, :].T)
         elif self.learning == 'sgd':
-            prediction = self.global_bias + self.user_bias[u] + self.item_bias[i]
-            prediction += self.user_vecs[u, :].dot(self.item_vecs[i, :].T)
-            return prediction
+            return self.user_vecs[u, :].dot(self.item_vecs[i, :].T) + (self.global_bias + self.user_bias[u] + self.item_bias[i])
 
     def predict_all(self):
         # Initialize predictions
@@ -152,20 +152,42 @@ class ExplicitMF:
 
         for u in range(self.user_vecs.shape[0]):
             for i in range(self.item_vecs.shape[0]):
-                predictions[u, i] = self.predict(u, i)
-
+                prediction = self.predict(u, i)
+                predictions[u, i] = prediction
         return predictions
-    
+
+    def make_recommendations(self,raw_predictions, user_idk, num_recommendation):
+        # Turn the predicted score into a binary value by using a threshold (default = 0.1)
+        predictions = np.where(raw_predictions >= self.threshold_recommendation, 1, 0)
+
+        # Retrieve user ratings and predicted ratings
+        user_ratings = self.ratings[user_idk]
+        user_predictions = predictions[user_idk]
+
+        # Evaluate predictions (recall)
+        recall = recall_score(user_ratings, user_predictions)
+
+        # Make predictions
+        unknown_items = np.argwhere(user_ratings == 0)
+        user_new_item_predictions = predictions[user_idk, unknown_items]
+
+        # Retrieve and sort the items recommended (indexes of the columns)
+        recommended_items = np.argsort(user_new_item_predictions, axis=0)[::-1]
+
+        # Make recommendation: select the top k items
+        recommendations = recommended_items[:num_recommendation]
+        return recommendations, recall
+
     def get_mse(self, pred, actual):
         """Calculate mean squard error between actual ratings and predictions"""
         pred = pred[actual.nonzero()].flatten()
         actual = actual[actual.nonzero()].flatten()
         return mean_squared_error(pred, actual)
 
-    def evaluate(self, test_data):
-        predictions = self.predict_all()
-        mse = self.get_mse(predictions, test_data)
-        return mse
+    def get_recall(self, pred, actual):
+        predictions = np.where(pred.flatten() >= self.threshold_recommendation, 1, 0)
+        actual = actual.flatten()
+        return recall_score(pred, actual)
 
     def calculate_learning_curve(self, iter_array, test, learning_rate=0.1):
         """
