@@ -49,6 +49,7 @@ def main(i, m, o):
     extract_users(train, os.path.join(o, 'test') if o is not None else None)
     print('Success!', o)
 
+
 def extract_users(data, directory):
     if directory is not None:
         print('Extracting users into', directory)
@@ -70,7 +71,7 @@ def extract_users(data, directory):
                 for event in d[user]:
                     f.write(json.dumps(event))
                     f.write('\n')
-        
+
 
 if __name__ == '__main__':
     import argparse
