@@ -39,7 +39,7 @@
 ## TODO now
 
 1. Merge both data sets
-2. Create a long list of all events, sorted by timestamp (keep this to perform analyses on the complete data set, such as TF-IDF)
+2. Create a long list of all events, sorted by timestamp (keep this to perform analyses on the complete data set, such as TF*IDF)
 3. Split 80/20 train/test
 4. Extract individual users from both train and test into one file each
 
