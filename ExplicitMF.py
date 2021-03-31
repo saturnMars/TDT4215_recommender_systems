@@ -7,7 +7,7 @@ Created on Sun Jan  6 14:42:44 2019
 """
 
 from numpy.linalg import solve
-from sklearn.metrics import mean_squared_error, recall_score
+from sklearn.metrics import mean_squared_error, recall_score, f1_score
 import numpy as np
 import pathlib
 import matplotlib.pyplot as plt
@@ -184,10 +184,6 @@ class ExplicitMF:
         actual = actual[actual.nonzero()].flatten()
         return mean_squared_error(pred, actual)
 
-    def get_recall(self, pred, actual):
-        predictions = np.where(pred.flatten() >= self.threshold_recommendation, 1, 0)
-        actual = actual.flatten()
-        return recall_score(pred, actual)
 
     def calculate_learning_curve(self, iter_array, test, learning_rate=0.1):
         """
@@ -223,11 +219,12 @@ class ExplicitMF:
 
         return predictions, self.test_mse[-1]
 
-    def plot_learning_curve(self, iter_array, model):
+    def plot_learning_curve(self, iter_array, model, best_params):
         pathlib.Path("plots").mkdir(exist_ok=True)
 
-        plt.suptitle("Collaborative Filtering")  # , fontsize=22
-        plt.title("Explicit Matrix Factorization (MF)")  # , fontsize=15, pad=-10
+        plt.title(f"Explicit Matrix Factorization (MF)\n"
+                  f"Factors: {best_params['n_factors']} "
+                  f"with {best_params['reg']} as regularization terms")  # , fontsize=15, pad=-10
         plt.plot(iter_array, model.train_mse, label='Training', linewidth=5)
         plt.plot(iter_array, model.test_mse, label='Test', linewidth=5)
 
@@ -238,5 +235,6 @@ class ExplicitMF:
         plt.xlabel('Iterations', fontsize=15)
         plt.ylabel('MSE', fontsize=15)
         plt.legend(loc='best', fontsize=14)
+        plt.tight_layout()
         plt.savefig("./plots/MatrixFactorization(CF).png")
         plt.show()

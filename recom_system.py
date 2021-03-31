@@ -14,9 +14,9 @@ def MF_grid_search(train_data, test_data):
     :param test_data:  ratings used to evaluate the model
     :return: The best model, n_factors, reg, n_iter
     """
-    latent_factors = [5, 10, 20, 40, 80]
-    regularization = [1e-4, 1e-3, 1e-2, 1e-1, 1.]
-    iter_array = [1, 2, 5, 10, 25, 50, 100]
+    latent_factors = [2, 3, 5, 10, 20, 40, 80]
+    regularization = [1e-3, 1e-2, 1e-1, 1.]
+    iter_array = [1, 2, 3, 5, 10, 25, 50, 100]
 
     # Initialize best parameters
     best_params = {
@@ -34,7 +34,7 @@ def MF_grid_search(train_data, test_data):
         for reg in regularization:
             print(f'Regularization: {reg}')
             # Define the model
-            model = ExplicitMatrixFactorization(train_data, learning_alg="sgd",
+            model = ExplicitMatrixFactorization(train_data, learning_alg="als",
                                                 n_factors=fact,
                                                 user_reg=reg, item_reg=reg,
                                                 user_bias_reg=reg, item_bias_reg=reg)
@@ -54,7 +54,9 @@ def MF_grid_search(train_data, test_data):
                 print(f'--> New optimal hyperparameters')
                 print(best_params)
 
-    return best_params["model"], (best_params['n_factors'], best_params['reg'], best_params['n_iter'])
+                model.plot_learning_curve(iter_array, model, best_params)
+
+    return best_params["model"], best_params['n_factors'], best_params['reg'], best_params['n_iter']
 
 
 def collaborative_filtering(train_data, test_data, common_users_ids, find_best_model=False):
@@ -69,7 +71,7 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
     :return: Prediction on train data, MSE on test data
     """
     if find_best_model:
-        EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data)
+        EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data, test_data)
 
         # EF_model.plot_learning_curve(iter_array, EF_model)
 
@@ -77,24 +79,15 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
         print(f"Best latent factors: {n_factors}")
         print(f"Best number of iterations: {n_iter}")
 
-        # New optimal hyperparameters ('n_factors': 5, 'reg': 1.0, 'n_iter': 100)
-        # 'train_mse': 4.714649845685047e-26,
-        # 'test_mse': 2.957891863472903e-26
-
-        # n_iter 1: 3min, mse = e-06
-        # n_iter 5: 5min, mse = e-07
-        # n_iter 10: 7min, mse = e-09
-        # n_iter 25: 15min, mse = e-11
-        # n_iter 50: 25min, mse = e-17
-        # n_iter 100: 1.30h, mse = e-26
+        # {'n_factors': 2, 'reg': 0.001, 'n_iter': 2, 'train_mse': 0.5991828374918935, 'test_mse': 0.7026256124228274,
 
     # Initialize the model with the best parameters found with grid search
     else:
-        num_factors = 5
-        num_iter = 5
-        reg_term = 1
+        num_factors = 120
+        num_iter = 2
+        reg_term = 0.001
         learning_rate = 0.1
-        EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="als", #als - sgd
+        EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="als",  # sgd
                                                item_reg=reg_term, user_reg=reg_term,
                                                item_bias_reg=reg_term, user_bias_reg=reg_term)
     # Train the model
