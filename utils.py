@@ -94,9 +94,11 @@ def Dataframe2UserItemMatrix(df, common_users):
     # Find indexes of common users
     common_users_df = df[df["userId"].isin(common_users)]["uid"].unique()
     common_idx = set()
+    event_idx = set()
 
     for row in df_ext.itertuples():
         ratings[row[1] - 1, row[2] - 1] = 1.0
+
         if row[1] in common_users_df:
             common_idx.add(row[1] - 1)
 
@@ -110,4 +112,4 @@ def Dataframe2UserItemMatrix(df, common_users):
     print(f"Number of ratings available (1s): {ratings_available[1]} "
           f"(~ {sparsity} %, total = {sum(ratings_available.values())}]")
 
-    return ratings, common_idx
+    return ratings, common_idx, item_ids

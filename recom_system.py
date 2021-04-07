@@ -78,7 +78,6 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
         print(f"Best regularization term: {reg_term}")
         print(f"Best latent factors: {n_factors}")
         print(f"Best number of iterations: {n_iter}")
-
         # {'n_factors': 2, 'reg': 0.001, 'n_iter': 2, 'train_mse': 0.5991828374918935, 'test_mse': 0.7026256124228274,
 
     # Initialize the model with the best parameters found with grid search
@@ -86,13 +85,12 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
         num_factors = 120
         num_iter = 2
         reg_term = 0.001
-        learning_rate = 0.1
         EF_model = ExplicitMatrixFactorization(train_data, n_factors=num_factors, learning_alg="als",  # sgd
                                                item_reg=reg_term, user_reg=reg_term,
                                                item_bias_reg=reg_term, user_bias_reg=reg_term)
     # Train the model
     print("--> Training ...")
-    EF_model.train(num_iter, learning_rate)
+    EF_model.train(num_iter)
 
     # Generate recommendations and evaluate recall scores
     raw_predictions = EF_model.predict_all()
@@ -140,8 +138,8 @@ if __name__ == "__main__":
     train_df, test_df, common_users = utils.split_train_test(df, num_test_days=30)
 
     # Create the User-Item matrix
-    train_ratings, common_users_ids = utils.Dataframe2UserItemMatrix(train_df, common_users)
-    test_ratings, common_users_ids = utils.Dataframe2UserItemMatrix(test_df, common_users)
+    train_ratings, *_ = utils.Dataframe2UserItemMatrix(train_df, common_users)
+    test_ratings, common_users_ids, item_ids = utils.Dataframe2UserItemMatrix(test_df, common_users)
 
     # METHOD 1: Item-based Collaborative Filtering
     # Latent factors: Explicit Matrix Factorization
@@ -151,3 +149,12 @@ if __name__ == "__main__":
           f"({len(recommendations[0])} recommendations for each user)\n"
           f"    Average recall score: {round(average_recall, 4)}")
 
+    # Example user recommendation
+    user = 99
+    user_recommendations = list(recommendations[user])  # 1533, 3508, 735
+    print(f"--> (Example) Recommendation for user {user}")
+    for recommendation in user_recommendations:
+        idk = recommendation.item()
+        document_idk = item_ids[idk + 1]
+        document = test_df[test_df["documentId"] == document_idk][["title", "url"]].iloc[0]
+        print(f"        Item ({document_idk}): '{document['title']}' via '{document['url']}'")
