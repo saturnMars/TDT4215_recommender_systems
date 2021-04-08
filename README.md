@@ -43,10 +43,11 @@
 > or from
 > https://towardsdatascience.com/content-based-recommender-systems-28a1dbd858f5
 
-1. Only work with single user file
-2. Stopword removal in titles
-3. TF\*IDF for keywords compared to the keywords of all their articles
-4. Build matrix from the article
+1. Stopword removal in titles
+2. Merge titles and keyword lists
+3. Only work with single user file:
+4. TF\*IDF for keywords compared to the keywords of all their articles
+5. Build matrix from the article
 
    ```asciiart
        doc0       doc1   doc2   doc3
@@ -55,5 +56,5 @@
    w2                           tfidf23
    ```
 
-5. Compute cosine similarity between items
-6. Recommend from the article
+6. Compute cosine similarity between items
+7. Recommend from the article
