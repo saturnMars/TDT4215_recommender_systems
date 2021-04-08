@@ -35,3 +35,25 @@
 3. Implement a Content-based RS
 4. Merge them and build a Hybrid RS
 5. Evaluation Recall, ARHR)
+
+## TODO for Content-based Filtering
+
+> Implement the article from
+> https://medium.com/@bindhubalu/content-based-recommender-system-4db1b3de03e7
+> or from
+> https://towardsdatascience.com/content-based-recommender-systems-28a1dbd858f5
+
+1. Only work with single user file
+2. Stopword removal in titles
+3. TF\*IDF for keywords compared to the keywords of all their articles
+4. Build matrix from the article
+
+   ```asciiart
+       doc0       doc1   doc2   doc3
+   w0  tfidf00
+   w1              ...
+   w2                           tfidf23
+   ```
+
+5. Compute cosine similarity between items
+6. Recommend from the article
