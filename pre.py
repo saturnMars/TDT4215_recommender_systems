@@ -27,7 +27,7 @@ def main(i, m, o):
                         'title': title,
                         'createtime': createtime
                     }
-                events.append(e)
+                    events.append(e)
     count = len(events)
     print('Sorting', count, 'events by timestamp')
     events.sort(key=lambda o: o['time'])
@@ -66,7 +66,7 @@ def extract_users(data, directory):
         print('Creating', len(d), 'user-specific files')
         os.makedirs(directory, exist_ok=True)
         for user in tqdm(d):
-            path = os.path.join(directory, user)
+            path = os.path.join(directory, user.replace(':', '_'))
             with open(path, 'w') as f:
                 for event in d[user]:
                     f.write(json.dumps(event))
