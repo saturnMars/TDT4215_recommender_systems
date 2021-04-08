@@ -3,9 +3,15 @@
 
 import json
 import os
-
+import re
+import nltk
 import pandas as pd
+from nltk.corpus import stopwords as sw
+from nltk.tokenize import word_tokenize
 from tqdm import tqdm
+
+nltk.download('stopwords')
+stopwords = set(sw.words('norwegian')) | set(sw.words('english'))
 
 
 def main(i, m, o):
@@ -27,6 +33,13 @@ def main(i, m, o):
                         'title': title,
                         'createtime': createtime
                     }
+                    tokens = [word.lower() for word in word_tokenize(title)]
+                    kws = (keywords
+                           if type(keywords) == str
+                           else '').lower().split(',')
+                    e['words'] = [word
+                                  for word in tokens + kws
+                                  if len(re.sub(r"[\.'\-_:0-9]", '', word)) > 0 and word not in stopwords]
                     events.append(e)
     count = len(events)
     print('Sorting', count, 'events by timestamp')
