@@ -1,6 +1,59 @@
+#!/usr/bin/env python3
+# -*- coding: utf8 -*-
+
+import numpy as np
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import GridSearchCV, train_test_split
+
 import utils
 from ExplicitMF import ExplicitMF as ExplicitMatrixFactorization
-import numpy as np
+
+
+def get_mse(pred, actual):
+    # Ignore nonzero terms.
+    pred = pred[actual.nonzero()].flatten()
+    actual = actual[actual.nonzero()].flatten()
+    return mean_squared_error(pred, actual)
+
+
+def fast_similarity(ratings, kind='user', epsilon=1e-9):
+    # epsilon -> small number for handling dived-by-zero errors
+    if kind == 'user':
+        sim = ratings.dot(ratings.T) + epsilon
+    elif kind == 'item':
+        sim = ratings.T.dot(ratings) + epsilon
+    norms = np.array([np.sqrt(np.diagonal(sim))])
+    return (sim / norms / norms.T)
+
+
+def predict_fast_simple(ratings, similarity, kind='user'):
+    if kind == 'user':
+        return similarity.dot(ratings) / np.array([np.abs(similarity).sum(axis=1)]).T
+    elif kind == 'item':
+        return ratings.dot(similarity) / np.array([np.abs(similarity).sum(axis=1)])
+
+
+def predict_topk(ratings, similarity, kind='user', k=50):
+    pred = np.zeros(ratings.shape)
+    if kind == 'user':
+        for i in range(ratings.shape[0]):
+            top_k_users = [np.argsort(similarity[:, i])[:-k - 1:-1]]
+            for j in range(ratings.shape[1]):
+                pred[i, j] = similarity[i, :][top_k_users].dot(
+                    ratings[:, j][top_k_users])
+                pred[i, j] /= np.sum(np.abs(similarity[i, :][top_k_users]))
+    if kind == 'item':
+        for j in range(ratings.shape[1]):
+            top_k_items = [np.argsort(similarity[:, j])[:-k - 1:-1]]
+            for i in range(ratings.shape[0]):
+                pred[i, j] = similarity[j, :][tuple(top_k_items)].dot(
+                    ratings[i, :][tuple(top_k_items)].T)
+                pred[i, j] /= np.sum(np.abs(similarity[j, :]
+                                     [tuple(top_k_items)]))
+
+    return pred
+
 
 def MF_grid_search(train_data, test_data):
     """
@@ -71,7 +124,8 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
     :return: Prediction on train data, MSE on test data
     """
     if find_best_model:
-        EF_model, n_factors, reg_term, n_iter = MF_grid_search(train_data, test_data)
+        EF_model, n_factors, reg_term, n_iter = MF_grid_search(
+            train_data, test_data)
 
         # EF_model.plot_learning_curve(iter_array, EF_model)
 
@@ -97,9 +151,11 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
 
     recalls = []
     users_recommendations = []
-    print(f"--> Making recommendations for {len(common_users_ids)} users and evaluate predictions (recall)...")
+    print(
+        f"--> Making recommendations for {len(common_users_ids)} users and evaluate predictions (recall)...")
     for user in common_users_ids:
-        recommendations, recall = EF_model.make_recommendations(raw_predictions, user, num_recommendation=20)
+        recommendations, recall = EF_model.make_recommendations(
+            raw_predictions, user, num_recommendation=20)
         users_recommendations.append(recommendations)
         recalls.append(recall)
         #print(f"{len(recommendations)} recommendations generated for USER:{user} with RECALL: {round(recall, 4)}")
@@ -131,20 +187,36 @@ def MF_make_recommendation(ratings, prediction_matrix, user_id, k):
 
 
 if __name__ == "__main__":
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('data',
+                        help='Data directory')
+
+    args = parser.parse_args()
+
+    data = args.data
+
     # Import dataset
-    df = utils.import_dataset("./data")
+    df = utils.import_dataset(data)
 
     # Split the dataset into training and test sets, according to the "time" attribute
-    train_df, test_df, common_users = utils.split_train_test(df, num_test_days=30)
+    train_df, test_df, common_users = utils.split_train_test(
+        df, num_test_days=30)
 
     # Create the User-Item matrix
     train_ratings, *_ = utils.Dataframe2UserItemMatrix(train_df, common_users)
-    test_ratings, common_users_ids, item_ids = utils.Dataframe2UserItemMatrix(test_df, common_users)
+    test_ratings, common_users_ids, item_ids = utils.Dataframe2UserItemMatrix(
+        test_df, common_users)
 
     # METHOD 1: Item-based Collaborative Filtering
     # Latent factors: Explicit Matrix Factorization
     print("\nRecommendation based on the CF method (Matrix Factorization)")
-    recommendations, average_recall = collaborative_filtering(train_ratings, test_ratings, common_users_ids)
+    recommendations, average_recall = collaborative_filtering(
+        train_ratings, test_ratings, common_users_ids)
     print(f"    Recommendations generated: {len(recommendations) * len(recommendations[0])} "
           f"({len(recommendations[0])} recommendations for each user)\n"
           f"    Average recall score: {round(average_recall, 4)}")
@@ -156,5 +228,26 @@ if __name__ == "__main__":
     for recommendation in user_recommendations:
         idk = recommendation.item()
         document_idk = item_ids[idk + 1]
-        document = test_df[test_df["documentId"] == document_idk][["title", "url"]].iloc[0]
-        print(f"        Item ({document_idk}): '{document['title']}' via '{document['url']}'")
+        document = test_df[test_df["documentId"] ==
+                           document_idk][["title", "url"]].iloc[0]
+        print(
+            f"        Item ({document_idk}): '{document['title']}' via '{document['url']}'")
+
+    # METHOD 2:
+    # Item-based CF and training the model
+    print("\nRecommendation based on item based CF ...\n")
+    # recommendation_item = itemCF_make_recommendation(ratings, train_predictions, index_user,num_recommendation)
+    # train and test split is done.
+
+    item_similarity = fast_similarity(train_ratings, kind='item')
+
+    # print(item_similarity[:4, :4])
+    pred = predict_topk(train_ratings, item_similarity, kind='item', k=40)
+
+    print('Top-k Item-based CF MSE: ' + str(get_mse(pred, test_ratings)))
+
+    # should return the top item instead of MSE, just basically followed the guide since I couldnt make it work with a similar
+    # code as Håvard.
+
+    #print("\nRecommended item(s): ")
+    #print(recommend_items(ratings, 0, 5))
