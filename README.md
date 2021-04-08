@@ -43,8 +43,8 @@
 > or from
 > https://towardsdatascience.com/content-based-recommender-systems-28a1dbd858f5
 
-1. Stopword removal in titles
-2. Merge titles and keyword lists
+1. Stopword removal in titles in pre.py
+2. Merge titles and keyword lists in pre.py
 3. Only work with single user file:
 4. TF\*IDF for keywords compared to the keywords of all their articles
 5. Build matrix from the article
