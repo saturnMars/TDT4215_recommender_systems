@@ -46,7 +46,7 @@ def main(i, m, o):
     train, test = events[:split], events[split:]
     print(len(train), 'training events and', len(test), 'test events')
     extract_users(train, os.path.join(o, 'train') if o is not None else None)
-    extract_users(train, os.path.join(o, 'test') if o is not None else None)
+    extract_users(test, os.path.join(o, 'test') if o is not None else None)
     print('Success!', o)
 
 
