@@ -111,7 +111,7 @@ def MF_grid_search(train_data, test_data):
     return best_params["model"], best_params['n_factors'], best_params['reg'], best_params['n_iter']
 
 
-def collaborative_filtering(train_data, test_data, common_users_ids, find_best_model=False):
+def matrix_factorization(train_data, test_data, common_users_ids, find_best_model=False):
     """
     Implement the algorithm of Explicit Matrix factorization using an approach of collaborative filtering
     :param train_data: data used to train the model
@@ -169,37 +169,35 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
     return users_recommendations, avg_recall_score, avg_mse_score, avg_f1_score
 
 
-def MF_make_recommendation(ratings, prediction_matrix, user_id, k):
-    """
-    Generate recommendation from a dense user-item matrix
-    :param ratings: user-item matrix
-    :param prediction_matrix: predicted user-item matrix
-    :param user_id: Index of the target user
-    :param k: number of recommendation
-    :return: id of the recommended items
-    """
-    # Retrieve user predictions
-    user_ratings = ratings[user_id]
-    items_unknown = np.argwhere(user_ratings == 0)
-    user_prediction = prediction_matrix[user_id, items_unknown]
+def collaborative_filtering():
+    print("\nRecommendation based on the CF method (Matrix Factorization)")
+    recommendations, average_recall, average_mse, average_f1 = matrix_factorization(
+        train_ratings, test_ratings, common_users_ids)
+    print(f"    Recommendations generated: {len(recommendations) * len(recommendations[0])} "
+          f"({len(recommendations[0])} recommendations for each user)\n"
+          f"    Average recall score: {round(average_recall, 4)}"
+          f", Average MSE score: {round(average_mse, 4)}"
+          f", Average F-1 score: {round(average_f1, 4)}")
 
-    # Retrieve and sort the items recommended (indexes of the columns)
-    recommended_items = np.argsort(user_prediction, axis=0)[::-1]
-
-    # Make recommendation: select the top k items
-    recommendations = recommended_items[:k]
-    return recommendations
+    # Example user recommendation
+    user = 99
+    user_recommendations = list(recommendations[user])  # 1533, 3508, 735
+    print(f"--> (Example) Recommendation for user {user}")
+    for idk_rec, recommendation in enumerate(user_recommendations):
+        idk = recommendation.item()
+        document_idk = item_ids[idk + 1]
+        document = test_df[test_df["documentId"] ==
+                           document_idk][["title", "url"]].iloc[0]
+        print(f"        Recommendation {idk_rec + 1}: '{document['title']}' via '{document['url']}'")
 
 
 if __name__ == "__main__":
+    # Set data folder
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('data',
-                        help='Data directory')
-
+    parser.add_argument('data', help='Data directory')
     args = parser.parse_args()
-
     data = args.data
 
     # Import dataset
@@ -214,28 +212,10 @@ if __name__ == "__main__":
     test_ratings, common_users_ids, item_ids = utils.Dataframe2UserItemMatrix(
         test_df, common_users)
 
-    # METHOD 1: Item-based Collaborative Filtering
-    # Latent factors: Explicit Matrix Factorization
-    print("\nRecommendation based on the CF method (Matrix Factorization)")
-    recommendations, average_recall, average_mse, average_f1 = collaborative_filtering(
-        train_ratings, test_ratings, common_users_ids)
-    print(f"    Recommendations generated: {len(recommendations) * len(recommendations[0])} "
-          f"({len(recommendations[0])} recommendations for each user)\n"
-          f"    Average recall score: {round(average_recall, 4)}"
-          f", Average MSE score: {round(average_mse, 4)}"
-          f", Average F-1 score: {round(average_f1, 4)}")
+    # METHOD 1: Item-based collaborative Filtering
+    # Explicit Matrix Factorization (Latent factors)
+    collaborative_filtering()
 
-    # Example user recommendation
-    user = 99
-    user_recommendations = list(recommendations[user])  # 1533, 3508, 735
-    print(f"--> (Example) Recommendation for user {user}")
-    for idk, recommendation in enumerate(user_recommendations):
-        idk = recommendation.item()
-        document_idk = item_ids[idk + 1]
-        document = test_df[test_df["documentId"] ==
-                           document_idk][["title", "url"]].iloc[0]
-        print(f"        Recommendation {idk + 1}: '{document['title']}' via '{document['url']}'")
-    # ------------------------------------------
     # METHOD 2:
     # Item-based CF and training the model
     print("\nRecommendation based on item based CF ...\n")
