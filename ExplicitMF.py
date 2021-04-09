@@ -164,8 +164,10 @@ class ExplicitMF:
         user_ratings = self.ratings[user_idk]
         user_predictions = predictions[user_idk]
 
-        # Evaluate predictions (recall)
+        # Evaluate predictions
         recall = recall_score(user_ratings, user_predictions)
+        mse = mean_squared_error(user_ratings, user_predictions)
+        f1 = f1_score(user_ratings, user_predictions)
 
         # Make predictions
         unknown_items = np.argwhere(user_ratings == 0)
@@ -176,7 +178,7 @@ class ExplicitMF:
 
         # Make recommendation: select the top k items
         recommendations = recommended_items[:num_recommendation]
-        return recommendations, recall
+        return recommendations, recall, mse, f1
 
     def get_mse(self, pred, actual):
         """Calculate mean squard error between actual ratings and predictions"""

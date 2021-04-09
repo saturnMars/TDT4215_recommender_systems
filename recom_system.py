@@ -5,10 +5,9 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import GridSearchCV, train_test_split
-
 import utils
 from ExplicitMF import ExplicitMF as ExplicitMatrixFactorization
-
+import argparse
 
 def get_mse(pred, actual):
     # Ignore nonzero terms.
@@ -150,18 +149,24 @@ def collaborative_filtering(train_data, test_data, common_users_ids, find_best_m
     raw_predictions = EF_model.predict_all()
 
     recalls = []
+    mse_scores = []
+    f1_scores = []
     users_recommendations = []
-    print(
-        f"--> Making recommendations for {len(common_users_ids)} users and evaluate predictions (recall)...")
+    print(f"--> Making recommendations for {len(common_users_ids)} users and evaluate predictions...")
     for user in common_users_ids:
-        recommendations, recall = EF_model.make_recommendations(
-            raw_predictions, user, num_recommendation=20)
-        users_recommendations.append(recommendations)
-        recalls.append(recall)
-        #print(f"{len(recommendations)} recommendations generated for USER:{user} with RECALL: {round(recall, 4)}")
+        recom, recall, mse, f1_score = EF_model.make_recommendations(raw_predictions, user,
+                                                                     num_recommendation=20)
 
-    average_recall_score = np.array(recalls).mean()
-    return users_recommendations, average_recall_score
+        # print(f"{len(recommendations)} recommendations generated for USER:{user} with RECALL: {round(recall, 4)}")
+        users_recommendations.append(recom)
+        recalls.append(recall)
+        mse_scores.append(mse)
+        f1_scores.append(f1_score)
+
+    avg_recall_score = np.array(recalls).mean()
+    avg_mse_score = np.array(mse_scores).mean()
+    avg_f1_score = np.array(f1_scores).mean()
+    return users_recommendations, avg_recall_score, avg_mse_score, avg_f1_score
 
 
 def MF_make_recommendation(ratings, prediction_matrix, user_id, k):
@@ -187,9 +192,6 @@ def MF_make_recommendation(ratings, prediction_matrix, user_id, k):
 
 
 if __name__ == "__main__":
-
-    import argparse
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -215,24 +217,25 @@ if __name__ == "__main__":
     # METHOD 1: Item-based Collaborative Filtering
     # Latent factors: Explicit Matrix Factorization
     print("\nRecommendation based on the CF method (Matrix Factorization)")
-    recommendations, average_recall = collaborative_filtering(
+    recommendations, average_recall, average_mse, average_f1 = collaborative_filtering(
         train_ratings, test_ratings, common_users_ids)
     print(f"    Recommendations generated: {len(recommendations) * len(recommendations[0])} "
           f"({len(recommendations[0])} recommendations for each user)\n"
-          f"    Average recall score: {round(average_recall, 4)}")
+          f"    Average recall score: {round(average_recall, 4)}"
+          f", Average MSE score: {round(average_mse, 4)}"
+          f", Average F-1 score: {round(average_f1, 4)}")
 
     # Example user recommendation
     user = 99
     user_recommendations = list(recommendations[user])  # 1533, 3508, 735
     print(f"--> (Example) Recommendation for user {user}")
-    for recommendation in user_recommendations:
+    for idk, recommendation in enumerate(user_recommendations):
         idk = recommendation.item()
         document_idk = item_ids[idk + 1]
         document = test_df[test_df["documentId"] ==
                            document_idk][["title", "url"]].iloc[0]
-        print(
-            f"        Item ({document_idk}): '{document['title']}' via '{document['url']}'")
-
+        print(f"        Recommendation {idk + 1}: '{document['title']}' via '{document['url']}'")
+    # ------------------------------------------
     # METHOD 2:
     # Item-based CF and training the model
     print("\nRecommendation based on item based CF ...\n")
