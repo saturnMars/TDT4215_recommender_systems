@@ -156,6 +156,12 @@ class ExplicitMF:
                 predictions[u, i] = prediction
         return predictions
 
+    def get_mse(self, pred, actual):
+        """Calculate mean squard error between actual ratings and predictions"""
+        pred = pred[actual.nonzero()].flatten()
+        actual = actual[actual.nonzero()].flatten()
+        return mean_squared_error(pred, actual)
+
     def make_recommendations(self,raw_predictions, user_idk, num_recommendation):
         # Turn the predicted score into a binary value by using a threshold (default = 0.1)
         predictions = np.where(raw_predictions >= self.threshold_recommendation, 1, 0)
@@ -164,8 +170,10 @@ class ExplicitMF:
         user_ratings = self.ratings[user_idk]
         user_predictions = predictions[user_idk]
 
-        # Evaluate predictions (recall)
+        # Evaluate predictions
         recall = recall_score(user_ratings, user_predictions)
+        mse = self.get_mse(user_ratings, user_predictions)
+        f1 = f1_score(user_ratings, user_predictions)
 
         # Make predictions
         unknown_items = np.argwhere(user_ratings == 0)
@@ -176,14 +184,7 @@ class ExplicitMF:
 
         # Make recommendation: select the top k items
         recommendations = recommended_items[:num_recommendation]
-        return recommendations, recall
-
-    def get_mse(self, pred, actual):
-        """Calculate mean squard error between actual ratings and predictions"""
-        pred = pred[actual.nonzero()].flatten()
-        actual = actual[actual.nonzero()].flatten()
-        return mean_squared_error(pred, actual)
-
+        return recommendations, recall, mse, f1
 
     def calculate_learning_curve(self, iter_array, test, learning_rate=0.1):
         """
