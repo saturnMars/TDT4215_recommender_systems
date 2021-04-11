@@ -14,6 +14,7 @@ def content_based_single_item(documentId, dataset):
     df = df[['documentId', 'words', 'title']]
     df_new = df.reset_index(drop=True)
     df_new['words'] = df_new['words'].apply(' '.join)
+    #Could use title instead of words if it yields better performance
     tfidf_matrix = tf.fit_transform(df_new["words"])
 
     cosine_similarities = linear_kernel(tfidf_matrix, tfidf_matrix)
