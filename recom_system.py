@@ -1,20 +1,21 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
 import numpy as np
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, recall_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import GridSearchCV, train_test_split
 import utils
 from ExplicitMF import ExplicitMF as ExplicitMatrixFactorization
 import argparse
+from pandas import read_json, concat
 
 def get_mse(pred, actual):
     # Ignore nonzero terms.
     pred = pred[actual.nonzero()].flatten()
     actual = actual[actual.nonzero()].flatten()
     return mean_squared_error(pred, actual)
-
 
 def fast_similarity(ratings, kind='user', epsilon=1e-9):
     # epsilon -> small number for handling dived-by-zero errors
@@ -39,9 +40,9 @@ def predict_topk(ratings, similarity, kind='user', k=50):
         for i in range(ratings.shape[0]):
             top_k_users = [np.argsort(similarity[:, i])[:-k - 1:-1]]
             for j in range(ratings.shape[1]):
-                pred[i, j] = similarity[i, :][top_k_users].dot(
-                    ratings[:, j][top_k_users])
-                pred[i, j] /= np.sum(np.abs(similarity[i, :][top_k_users]))
+                pred[i, j] = similarity[i, :][tuple(top_k_users)].dot(
+                    ratings[:, j][tuple(top_k_users)])
+                pred[i, j] /= np.sum(np.abs(similarity[i, :][tuple(top_k_users)]))
     if kind == 'item':
         for j in range(ratings.shape[1]):
             top_k_items = [np.argsort(similarity[:, j])[:-k - 1:-1]]
@@ -61,7 +62,6 @@ def MF_grid_search(train_data, test_data):
         a) Latent factors
         b) Regularization terms
         c) Learning rates
-
     :param train_data: ratings used to train the model
     :param test_data:  ratings used to evaluate the model
     :return: The best model, n_factors, reg, n_iter
@@ -119,7 +119,6 @@ def matrix_factorization(train_data, test_data, common_users_ids, find_best_mode
     :param find_best_model: (bool) Set true to try to find the best hyperparameter for the algorithm
                                    it should be set to TRUE just the first time for finding the best value
                                    to initialize the model
-
     :return: Prediction on train data, MSE on test data
     """
     if find_best_model:
@@ -191,6 +190,7 @@ def collaborative_filtering():
         print(f"        Recommendation {idk_rec + 1}: '{document['title']}' via '{document['url']}'")
 
 
+
 if __name__ == "__main__":
     # Set data folder
     parser = argparse.ArgumentParser(
@@ -216,21 +216,38 @@ if __name__ == "__main__":
     # Explicit Matrix Factorization (Latent factors)
     collaborative_filtering()
 
-    # METHOD 2:
-    # Item-based CF and training the model
+    # ---------------METHOD 2------------------:
+    # User-based CF and training the model
+    print("\nRecommendation based on user based CF ...\n")
+
+    user_similarity = fast_similarity(train_ratings, kind='user')
+
+    # print(user_similarity[:4, :4])
+    pred = predict_fast_simple(train_ratings, user_similarity, kind='user')
+    #pred = predict_topk(train_ratings, user_similarity, kind='user', k=5) #0.6
+
+    #Return the MSE of the method
+    print('Average MSE for user-based CF: ' + str(get_mse(pred, test_ratings)))  #0.6821269911322863
+
+    pred2 = predict_topk(train_ratings,user_similarity, kind='user', k=50)
+
+    print('Average MSE for user-based CF top-k: ' + str(get_mse(pred2, test_ratings)))
+    #print(pred2[:4, :4])
+
+    # ---------------METHOD 3------------------:
+    # User-based CF and training the model
     print("\nRecommendation based on item based CF ...\n")
-    # recommendation_item = itemCF_make_recommendation(ratings, train_predictions, index_user,num_recommendation)
-    # train and test split is done.
 
     item_similarity = fast_similarity(train_ratings, kind='item')
 
-    # print(item_similarity[:4, :4])
-    pred = predict_topk(train_ratings, item_similarity, kind='item', k=40)
+    # print(user_similarity[:4, :4])
+    pred3 = predict_fast_simple(train_ratings, item_similarity, kind='item')
+    #pred = predict_topk(train_ratings, user_similarity, kind='user', k=5) #0.6
 
-    print('Top-k Item-based CF MSE: ' + str(get_mse(pred, test_ratings)))
+    #Return the MSE of the method
+    print('Average MSE for item-based CF: ' + str(get_mse(pred3, test_ratings)))  #0.80
 
-    # should return the top item instead of MSE, just basically followed the guide since I couldnt make it work with a similar
-    # code as Håvard.
+    pred4 = predict_topk(train_ratings,item_similarity, kind='item', k=50)
 
-    #print("\nRecommended item(s): ")
-    #print(recommend_items(ratings, 0, 5))
+    print('Average MSE for item-based CF top-k: ' + str(get_mse(pred4, test_ratings))) #0.47
+    #print(pred2[:4, :4])
