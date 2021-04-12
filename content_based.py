@@ -1,5 +1,5 @@
 import utils
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import scipy.sparse as sparse
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -9,12 +9,8 @@ from pandas import read_json, concat
 
 def content_based_single_item(documentId, dataset):
     tf = TfidfVectorizer(analyzer='word', ngram_range=(1,2), min_df=0)
-    df = utils.import_dataset(dataset)
-    df = df.drop_duplicates(subset=['documentId'])
-    df = df[['documentId', 'words', 'title']]
-    df_new = df.reset_index(drop=True)
-    df_new['words'] = df_new['words'].apply(' '.join)
     #Could use title instead of words if it yields better performance
+    df_new = dataset
     tfidf_matrix = tf.fit_transform(df_new["words"])
 
     cosine_similarities = linear_kernel(tfidf_matrix, tfidf_matrix)
@@ -63,10 +59,18 @@ def content_based(user, dataset):
     path = os.path.join(dataset, user)
     #number of items (3) could be tweaked to increase performance
     #could use activeTime instead of time
+
+    df = utils.import_dataset(dataset)
+    df = df.drop_duplicates(subset=['documentId'])
+    df = df[['documentId', 'words', 'title']]
+    df_new = df.reset_index(drop=True)
+    df_new['words'] = df_new['words'].apply(' '.join)
+
     best_items = get_n_highest(path, 'time', 3)
     recommended_items = list()
+    
     for item in best_items:
-        recommended_items.extend(content_based_single_item(item, dataset))
+        recommended_items.extend(content_based_single_item(item, df_new))
     
     recommended_items = list(dict.fromkeys(recommended_items))
 
@@ -154,9 +158,10 @@ if __name__ == "__main__":
     ctr_avg = 0
 
     #how many users to get reccomandations on. The higher number, the more accurate performance metrics
-    number_of_users = 2
+    number_of_users = 10
 
     #needs to be a directory containing one file for each user.
+    #uses train data in data.pre (can be found on telegram) by now
     dataset = "data/pre/train"
 
     for filename in os.listdir(dataset)[:number_of_users]:
